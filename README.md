@@ -108,4 +108,6 @@ Typical development workflow:
 
 ## License
 
-No license has been specified for this repository. Unless a license is added, all rights are reserved by the repository owner.
+This project is released under the [Unlicense](LICENSE) into the public domain.
+
+You are free to use, copy, modify, publish, distribute, sublicense, and sell this software without attribution, subject to the disclaimer in the `LICENSE` file.
