@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Edgenuity AI Auto-Solver & Navigator",
-  "version": "2.1.0",
-  "description": "Fast parallel Free AI solver for Edgenuity Quizzes (10 Qs) and Topic Tests (25 Qs), auto-clicks 'Click to Begin', and auto-submits after the final question.",
+  "version": "2.2.0",
+  "description": "Fast parallel Free AI solver for Edgenuity quizzes and topic tests with auto-start, automatic video skip/play handling, and final-question auto-submit.",
   "permissions": [
     "storage",
     "activeTab",

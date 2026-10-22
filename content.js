@@ -5,6 +5,8 @@ let handledEndedMediaKeys = new Set();
 let isBusy = false;
 let hudElement = null;
 let hookedVideos = new WeakSet();
+let metadataRetryVideos = new WeakSet();
+let autoSkipAttemptedKeyByVideo = new WeakMap();
 let lastFrameProgressClickAt = 0;
 
 const SELECTORS = {
@@ -181,6 +183,76 @@ function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${s < 10 ? "0" : ""}${s}`;
+}
+
+function getVideoMediaKey(video) {
+  return `${video.currentSrc || video.src || "video"}_${Math.round(video.duration || 0)}`;
+}
+
+function dispatchMediaEvent(video, type) {
+  try {
+    video.dispatchEvent(new Event(type, { bubbles: true }));
+  } catch (_) {}
+}
+
+function trySkipVideoToEnd(video) {
+  const duration = video.duration;
+  if (!Number.isFinite(duration) || duration <= 0) return "metadata-pending";
+
+  const nearEndTime = Math.max(0, duration - 0.05);
+  let seekAttempted = false;
+
+  try {
+    if (Math.abs((video.currentTime || 0) - nearEndTime) > 0.15) {
+      video.currentTime = nearEndTime;
+      seekAttempted = true;
+    }
+  } catch (_) {
+    return "blocked";
+  }
+
+  if (seekAttempted) {
+    dispatchMediaEvent(video, "seeking");
+    dispatchMediaEvent(video, "timeupdate");
+    dispatchMediaEvent(video, "seeked");
+  }
+
+  if (!(video.ended || (video.currentTime || 0) >= duration - 0.4)) {
+    try {
+      video.currentTime = duration;
+      seekAttempted = true;
+      dispatchMediaEvent(video, "timeupdate");
+      dispatchMediaEvent(video, "seeked");
+    } catch (_) {}
+  }
+
+  if (video.ended || (video.currentTime || 0) >= duration - 0.4) {
+    dispatchMediaEvent(video, "timeupdate");
+    dispatchMediaEvent(video, "ended");
+    return "skipped";
+  }
+
+  return "blocked";
+}
+
+function queueVideoSkipAfterMetadata(video) {
+  if (metadataRetryVideos.has(video)) return;
+  metadataRetryVideos.add(video);
+
+  video.addEventListener(
+    "loadedmetadata",
+    async () => {
+      const settings = await getSettings();
+      if (!settings.enabled || !settings.autoPlayVideos) return;
+      const mediaKey = getVideoMediaKey(video);
+      if (handledEndedMediaKeys.has(mediaKey)) return;
+      const skipState = trySkipVideoToEnd(video);
+      if (skipState === "skipped") {
+        updateHud("⏭️ Video metadata loaded — skipped to end.", "#22c55e");
+      }
+    },
+    { once: true }
+  );
 }
 
 function isElementVisible(el) {
@@ -746,12 +818,13 @@ function inspectAndHandleMedia(docs, settings) {
   for (const doc of docs) {
     const videos = Array.from(doc.querySelectorAll("video")).filter(isElementVisible);
     for (const video of videos) {
-      const mediaKey = `${video.currentSrc || video.src || "video"}_${Math.round(video.duration || 0)}`;
+      const mediaKey = getVideoMediaKey(video);
 
       if (!hookedVideos.has(video)) {
         hookedVideos.add(video);
         video.addEventListener("ended", async () => {
-          const endKey = `${video.currentSrc || video.src || "video"}_${Math.round(video.duration || 0)}`;
+          const endKey = getVideoMediaKey(video);
+          if (handledEndedMediaKeys.has(endKey)) return;
           handledEndedMediaKeys.add(endKey);
           await chrome.storage.local.set({ innerMediaPlayingUntil: 0 });
           updateHud("🎬 Video finished! Advancing to next part...", "#22c55e");
@@ -761,6 +834,36 @@ function inspectAndHandleMedia(docs, settings) {
             await advanceAfterSlideComplete(getAccessibleDocuments(document));
           }
         });
+      }
+
+      if (settings.autoPlayVideos) {
+        if (video.paused && video.readyState >= 1) {
+          video.play().catch(() => {
+            video.muted = true;
+            video.play().catch(() => {});
+          });
+          const playBtn = findButtonInDocs([doc], SELECTORS.videoPlayButtons);
+          if (playBtn) triggerSingleClick(playBtn);
+        }
+
+        const lastSkipAttemptKey = autoSkipAttemptedKeyByVideo.get(video);
+        if (
+          lastSkipAttemptKey !== mediaKey &&
+          !handledEndedMediaKeys.has(mediaKey)
+        ) {
+          autoSkipAttemptedKeyByVideo.set(video, mediaKey);
+          const skipState = trySkipVideoToEnd(video);
+          if (skipState === "metadata-pending") {
+            queueVideoSkipAfterMetadata(video);
+          } else if (skipState === "skipped") {
+            if (!handledEndedMediaKeys.has(mediaKey)) {
+              handledEndedMediaKeys.add(mediaKey);
+              newlyEndedMediaKey = mediaKey;
+            }
+            updateHud("⏭️ Video detected — skipping to end...", "#22c55e");
+            continue;
+          }
+        }
       }
 
       const duration = video.duration;
@@ -778,22 +881,20 @@ function inspectAndHandleMedia(docs, settings) {
       } else {
         hasActiveUnfinishedMedia = true;
 
-        if (video.paused && settings.autoPlayVideos && video.readyState >= 1) {
-          video.play().catch(() => {
-            video.muted = true;
-            video.play().catch(() => {});
-          });
-          const playBtn = findButtonInDocs([doc], SELECTORS.videoPlayButtons);
-          if (playBtn) triggerSingleClick(playBtn);
-        }
-
         if (Number.isFinite(duration) && duration > 0) {
           updateHud(
-            `🎬 Video playing (${formatTime(currentTime)} / ${formatTime(duration)}) — waiting for end`,
+            settings.autoPlayVideos
+              ? `🎬 Video at (${formatTime(currentTime)} / ${formatTime(duration)}) — waiting for end`
+              : `🎬 Video playing (${formatTime(currentTime)} / ${formatTime(duration)}) — waiting for end`,
             "#a855f7"
           );
         } else {
-          updateHud("🎬 Video loading — waiting for playback...", "#a855f7");
+          updateHud(
+            settings.autoPlayVideos
+              ? "🎬 Video loading metadata — waiting to skip..."
+              : "🎬 Video loading — waiting for playback...",
+            "#a855f7"
+          );
         }
       }
     }

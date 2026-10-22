@@ -11,7 +11,7 @@ A Manifest V3 browser extension for Edgenuity that provides configurable AI-assi
 - Detects the final question and can submit completed assessments.
 - Automatically clicks **Click to Begin** when enabled.
 - Automatically advances through questions and activities.
-- Can auto-play paused course videos and advance after playback finishes.
+- Can auto-play course videos and automatically skip to the end when seeking is allowed, then advance.
 - Displays an on-page status HUD for current activity and errors.
 - Caches previously solved questions during the extension session.
 - Supports multiple AI backends:
@@ -56,7 +56,7 @@ Open the extension popup to configure:
 - Auto-advance between questions.
 - Auto-submit quizzes and tests.
 - Auto-click quiz or test start controls.
-- Auto-play videos.
+- Auto-play and auto-skip videos.
 - AI provider and model.
 - API key for providers that require one.
 - Ollama endpoint and model.
@@ -101,6 +101,7 @@ Typical development workflow:
 
 - Page selectors are designed around Edgenuity interfaces and may need updates when the site changes.
 - Cross-origin frames may not be accessible to the content script.
+- Some embedded or custom video players can block script-driven seeking, so video auto-skip may fall back to normal playback.
 - AI providers can return incorrect, incomplete, delayed, or rate-limited responses.
 - Free gateways may become unavailable without notice.
 - Automated submission can be irreversible; keep auto-submit disabled until you understand the behavior.
