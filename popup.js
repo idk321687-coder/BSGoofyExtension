@@ -4,6 +4,8 @@ const FIELDS = [
   "enabled",
   "autoSubmit",
   "autoAdvance",
+  "autoSubmitQuiz",
+  "autoStartQuiz",
   "autoPlayVideos",
   "provider",
   "apiKey",
@@ -47,13 +49,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("enabled").checked = data.enabled !== false;
     document.getElementById("autoSubmit").checked = data.autoSubmit !== false;
     document.getElementById("autoAdvance").checked = data.autoAdvance !== false;
+    document.getElementById("autoSubmitQuiz").checked = data.autoSubmitQuiz !== false;
+    document.getElementById("autoStartQuiz").checked = data.autoStartQuiz !== false;
     document.getElementById("autoPlayVideos").checked = data.autoPlayVideos !== false;
     document.getElementById("provider").value = data.provider || "free";
     document.getElementById("apiKey").value = data.apiKey || "";
     document.getElementById("model").value = data.model || "gemini-2.5-flash";
     document.getElementById("ollamaUrl").value = data.ollamaUrl || "http://localhost:11434/api/generate";
     document.getElementById("ollamaModel").value = data.ollamaModel || "llama3.2";
-    document.getElementById("delayMs").value = data.delayMs || 2500;
+    document.getElementById("delayMs").value = data.delayMs || 1400;
     toggleProviderFields();
   });
 
@@ -64,13 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
       enabled: document.getElementById("enabled").checked,
       autoSubmit: document.getElementById("autoSubmit").checked,
       autoAdvance: document.getElementById("autoAdvance").checked,
+      autoSubmitQuiz: document.getElementById("autoSubmitQuiz").checked,
+      autoStartQuiz: document.getElementById("autoStartQuiz").checked,
       autoPlayVideos: document.getElementById("autoPlayVideos").checked,
       provider: document.getElementById("provider").value,
       apiKey: document.getElementById("apiKey").value.trim(),
       model: document.getElementById("model").value.trim(),
       ollamaUrl: document.getElementById("ollamaUrl").value.trim(),
       ollamaModel: document.getElementById("ollamaModel").value.trim(),
-      delayMs: Number(document.getElementById("delayMs").value) || 2500
+      delayMs: Number(document.getElementById("delayMs").value) || 1400
     };
 
     chrome.storage.local.set(updated, () => {

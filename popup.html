@@ -89,7 +89,7 @@
   </style>
 </head>
 <body>
-  <h2>Edgenuity AI Solver v1.6</h2>
+  <h2>Edgenuity AI Solver v2.1</h2>
 
   <div class="group">
     <div class="row">
@@ -97,12 +97,20 @@
       <input type="checkbox" id="enabled" checked />
     </div>
     <div class="row">
-      <span>Auto-Check / Submit</span>
+      <span>Auto-Check Per Question</span>
       <input type="checkbox" id="autoSubmit" checked />
     </div>
     <div class="row">
       <span>Auto-Advance Sequentially (1, 2, 3...)</span>
       <input type="checkbox" id="autoAdvance" checked />
+    </div>
+    <div class="row">
+      <span>Auto-Submit Quiz (10) / Test (25)</span>
+      <input type="checkbox" id="autoSubmitQuiz" checked />
+    </div>
+    <div class="row">
+      <span>Auto-Click "Click to Begin"</span>
+      <input type="checkbox" id="autoStartQuiz" checked />
     </div>
     <div class="row">
       <span>Auto-Play Paused Videos</span>
@@ -113,7 +121,7 @@
   <div class="group">
     <label for="provider">Free AI Provider</label>
     <select id="provider">
-      <option value="free">Built-in Keyless Free AI (LLM7 + Kilo + OVH)</option>
+      <option value="free">Built-in Keyless Free AI (Parallel Race)</option>
       <option value="gemini">Google Gemini (Free AI Studio Key)</option>
       <option value="groq">Groq Cloud (Free API Key)</option>
       <option value="openrouter">OpenRouter (Free Models Key)</option>
@@ -121,7 +129,7 @@
     </select>
 
     <div id="freeHint" class="hint">
-      Automatically routes across 3 keyless free AI gateways (LLM7.io, Kilo Code, and OVHcloud AI) with automatic failover.
+      Races LLM7, Kilo Code, and OVHcloud in parallel so the fastest free model answers in under 1 second.
     </div>
 
     <div id="apiKeyGroup" style="display: none;">
@@ -141,7 +149,7 @@
     </div>
 
     <label for="delayMs">Action Delay (ms)</label>
-    <input type="number" id="delayMs" value="2500" min="1000" step="250" />
+    <input type="number" id="delayMs" value="1400" min="600" step="200" />
   </div>
 
   <button id="saveBtn">Save Settings</button>
