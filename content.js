@@ -97,11 +97,15 @@ const SELECTORS = {
     "a.footnav.goRight:not(.disabled)",
     "li.footnav.goRight:not(.disabled) a",
     ".footnav.goRight:not(.disabled)",
+    "li.footnav.next:not(.disabled) a",
+    ".footnav.next:not(.disabled)",
     "#next-activity:not(.disabled)",
     "#nextActivity:not(.disabled)",
     ".next-activity:not(.disabled)",
     "[data-tid='next-activity-button']",
     "button[aria-label*='Next Activity' i]",
+    "a[aria-label*='Next Activity' i]",
+    "button[title*='Next Activity' i]",
     "a[title*='Next Activity' i]"
   ],
   videoPlayButtons: [
@@ -726,11 +730,7 @@ async function advanceAfterSlideComplete(docs) {
   }
 
   await chrome.storage.local.set({ readyForNextActivityAt: Date.now() });
-  const nextActivityBtn = findButtonInDocs(
-    docs,
-    SELECTORS.nextActivityButtons,
-    /^next\s+activity$/i
-  );
+  const nextActivityBtn = findButtonInDocs(docs, SELECTORS.nextActivityButtons, /^next\s+activity/i);
   if (nextActivityBtn) {
     updateHud("⏭️ Moving to next assignment / quiz...", "#22c55e");
     await safelyClickNextWithCooldown(nextActivityBtn, 3000);
@@ -810,6 +810,26 @@ async function mainLoop() {
 
   const docs = getAccessibleDocuments(document);
   removeInvisibleOverlays(docs);
+
+  if (settings.autoAdvance) {
+    const immediateNextActivityBtn = findButtonInDocs(
+      docs,
+      SELECTORS.nextActivityButtons,
+      /^next\s+activity/i
+    );
+    if (immediateNextActivityBtn) {
+      const state = await chrome.storage.local.get(["lastQuestionActiveAt"]);
+      const now = Date.now();
+      if (!state.lastQuestionActiveAt || now - state.lastQuestionActiveAt > 2200) {
+        const clicked = await safelyClickNextWithCooldown(immediateNextActivityBtn, 3500);
+        if (clicked) {
+          updateHud("⏭️ Advancing to Next Activity...", "#22c55e");
+          await chrome.storage.local.set({ readyForNextActivityAt: 0 });
+          return;
+        }
+      }
+    }
+  }
 
   // 1. Check for playing/loading videos
   const mediaState = inspectAndHandleMedia(docs, settings);
